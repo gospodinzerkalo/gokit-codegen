@@ -9,3 +9,18 @@ func (c store) CreateUser(d domain.User) (*domain.User, error) {
 	}
 	return &d, nil
 }
+func (c store) GetUserList(d domain.User) (*[]domain.User, error) {
+	var res []domain.User
+	rows, err := c.db.Exec("SELECT id,name FROM users")
+	if err != nil {
+		return nil, err
+	}
+	for rows.Next {
+		var user domain.User
+		if err := rows.Scan(&user.ID, &user.Name); err != nil {
+			return nil, err
+		}
+		res = append(res, user)
+	}
+	return &res, nil
+}
