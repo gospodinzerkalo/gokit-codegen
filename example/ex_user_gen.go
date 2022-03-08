@@ -24,3 +24,7 @@ func (c store) GetUserList(d domain.User) (*[]domain.User, error) {
 	}
 	return &res, nil
 }
+func (c store) DeleteUser(id int64) error {
+	_, err := c.db.Exec("DELETE FROM users WHERE id=$1", id)
+	return err
+}

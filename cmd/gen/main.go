@@ -2,13 +2,13 @@ package main
 
 import (
 	"fmt"
+	. "github.com/dave/jennifer/jen"
 	"go/types"
 	"golang.org/x/tools/go/packages"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
-	. "github.com/dave/jennifer/jen"
 )
 
 func main() {
@@ -95,8 +95,9 @@ func generate(sourceTypeName string, structType *types.Struct, pkgName string) e
 	}
 
 
-	CreateType(f, c, sourceTypeName)
-	GetTypes(f, c, sourceTypeName)
+	greateType(f, c, sourceTypeName)
+	getTypes(f, c, sourceTypeName)
+	deleteTypes(f, c, sourceTypeName)
 
 	// 6. Build the target file name
 	goFile := os.Getenv("GOFILE")
@@ -108,7 +109,7 @@ func generate(sourceTypeName string, structType *types.Struct, pkgName string) e
 	return f.Save(targetFilename)
 }
 
-func CreateType(f *File, c *Statement, sourceTypeName string) {
+func greateType(f *File, c *Statement, sourceTypeName string) {
 	var codes []Code
 	code1 := If(Id("_, err")).
 		Op(":=").
@@ -132,7 +133,7 @@ func CreateType(f *File, c *Statement, sourceTypeName string) {
 	)
 }
 
-func GetTypes(f *File,c *Statement, sourceTypeName string) {
+func getTypes(f *File,c *Statement, sourceTypeName string) {
 	var codes []Code
 	for i, _ := range selectFields {
 		selectFields[i] = fmt.Sprintf("&user.%s", selectFields[i])
@@ -164,6 +165,26 @@ func GetTypes(f *File,c *Statement, sourceTypeName string) {
 		).Id(fmt.Sprintf("Get%sList", sourceTypeName)).Params(Id("d").Id(c.GoString())).
 		Id("(*[]").List(c, Error()).
 		Id(")").Block(
+			codes...,
+			)
+}
+
+func deleteTypes(f *File, c *Statement, sourceTypeName string) {
+	var codes []Code
+
+	codes = append(codes,
+			Id("_").Op(",").Err().Op(":=").Id("c.db.Exec").
+				Id(fmt.Sprintf("(\"DELETE FROM %s WHERE id=$1\"", tableName)).Id(",id)"),
+
+				Return(Err()),
+
+		)
+
+	receiverT := "store"
+	f.Func().Params(
+		Id("c").Id(receiverT),
+		).Id(fmt.Sprintf("Delete%s", sourceTypeName)).Params(Id("id int64")).
+		Error().Block(
 			codes...,
 			)
 }
